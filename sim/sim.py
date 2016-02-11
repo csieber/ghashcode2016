@@ -7,8 +7,6 @@ import logging
 #import networkx as nx
 import numpy as np
 import simpy
-#from simpy.events import AllOf
-#from sim.resources import ASIC, NMS_Queue
 
 log = logging.getLogger(__name__)
 
@@ -54,6 +52,8 @@ class Drone(object):
         self._env = env
         self._id = id
         self._capacity = capacity
+
+        self._current_load = 0
 
         self._pos = pos
 
@@ -116,7 +116,7 @@ class SIM(object):
 
         # Drone
         for idx, d in enumerate(self._args['drones']):
-            gl_drones[idx] = Drone(self._env, idx, d['coords'], d['load'])
+            gl_drones[idx] = Drone(self._env, idx, d['coords'], args['max_payload'])
 
         # Warehouses
         for idx, d in enumerate(self._args['warehouses']):
@@ -126,7 +126,9 @@ class SIM(object):
         for idx, d in enumerate(self._args['orders']):
             gl_orders[idx] = Order(self._env, idx, d['coords'], d['products'])
 
-
+        # Sim Parameter
+        setattr(self._env, 'gridsize', (args['cols'], args['rows']))
+        setattr(self._env, 'until', args['time_limit'])
 
     def cleanup(self):
 
