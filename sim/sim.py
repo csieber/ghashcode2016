@@ -38,8 +38,17 @@ class Drone(object):
 
         self._pos = (0,0)
 
-    def load(self):
-        pass
+    def load(self, w_id, p_T, count):
+
+        fa = (self._env.now, self._id, w_id, p_T, count)
+        print("%.1f: Drone %d loading at warehouse %d product type %d %d times." % fa)
+        print("%dL%d%d%d" % fa)
+
+    def unload(self, w_id, p_T, count):
+
+        fa = (self._env.now, self._id, w_id, p_T, count)
+        print("%.1f: Drone %d unloading at warehouse %d product type %d %d times." % fa)
+        print("%dU%d%d%d" % fa)
 
 
 class SIM(object):
