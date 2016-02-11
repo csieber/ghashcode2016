@@ -1,5 +1,6 @@
 __author__ = 'Mikhail Vilgelm'
-import pprint
+# import pprint
+
 
 def load(filename):
 
@@ -62,6 +63,7 @@ def load(filename):
 
     for drone in simulation['drones']:
         drone['coords'] = simulation['warehouses'][0]['coords']
+        drone['load'] = simulation['max_payload']
 
     return simulation
 
@@ -69,12 +71,12 @@ def load(filename):
 
 if __name__=='__main__':
 
-    sim = input('busy_day.in')
+    sim = load('busy_day.in')
 
     print(sim['drones'])
     print(len(sim['drones']))
 
-    pp = pprint.PrettyPrinter(indent=2)
+    # pp = pprint.PrettyPrinter(indent=2)
     # pp.pprint(sim['warehouses'])
     print(sim['warehouses'])
     print(sim['orders'])
