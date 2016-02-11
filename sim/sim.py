@@ -15,6 +15,11 @@ log = logging.getLogger(__name__)
 def distance(f, t):
     return int(np.round(np.sqrt(np.power(np.abs(f._pos[0] - t._pos[0]), 2) + np.power(np.abs(f._pos[1] - t._pos[1]), 2))))
 
+gl_warehouses = {}
+gl_drones = {}
+gl_products = {}
+gl_orders = {}
+
 class Warehouse(object):
 
     def __init__(self, env, id, pos, products):
@@ -34,14 +39,9 @@ class Warehouse(object):
 
         pass
 
-gl_warehouses = {}
-gl_drones = {}
-gl_products = {}
-gl_orders = {}
-
 class Order(object):
 
-    def __int__(self, env, id, to, products):
+    def __init__(self, env, id, to, products):
         self._id = id
         self._pos = to
         self._env = env
@@ -112,8 +112,6 @@ class SIM(object):
 
     def setup(self, args):
 
-        global gl_drones
-
         self._args = args
 
         # Drone
@@ -156,11 +154,7 @@ class SIM(object):
 
         start = time.time()
 
-        d = Drone(self._env, {'id': 3, 'capacity': 500})
-
-        d.load(0, 2, 3)
-
-        #self._env.process(self.loop())
+        self._env.process(self.loop())
 
         self._env.run(until=self._args['until'])
         
