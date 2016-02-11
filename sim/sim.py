@@ -201,6 +201,7 @@ class SIM(object):
 
         while True:
 
+            print("%.1f: Requesting..." % self._env.now )
             request = gl_free_drones['resource'].request()
 
             # gather all free drones
@@ -209,12 +210,11 @@ class SIM(object):
             # Go through all non served orders
             non_served = [tmp for tmp in gl_orders.values() if not tmp.served]
 
-            print(free)
-            print(non_served)
+            order, drone, warehouses = next_order(free, non_served)
 
-            drone, warehouses, costs = cost_of_orders(free, non_served)
-
-            drone.serve(non_served[np.argmin(costs)], warehouses)
+            print("Processing..")
+            yield self._env.process(drone.serve(order, warehouses))
+            print("Processing..DONE")
 
             gl_free_drones['resource'].release(request)
 
@@ -225,13 +225,31 @@ class SIM(object):
 
         self._env.process(self.loop())
 
-        self._env.run(until=self._args['until'])
+        self._env.run(until=self._env.until)
         
         duration = time.time() - start
         
         log.info("Simulation took %.2fs." % duration)
 
 
-def cost_of_orders(free, non_served):
+def next_order(free, non_served):
 
-    return free[0], [gl_warehouses[0]], [0 for o in non_served]
+    costs = []
+
+    for order in non_served:
+
+        cost_per_drone = [cost_of_order_per_drone(order, drone) for drone in free]
+
+        costs.append((order,
+                      free[np.argmin([x[1] for x in cost_per_drone])],
+                      cost_per_drone[np.argmin([x[1] for x in cost_per_drone])]))
+
+    tmp = [c[2][1] for c in costs]
+    best = costs[np.argmin(tmp)]
+
+    # order, drone, path
+    return best[0], best[1], best[2][0]
+
+
+def cost_of_order_per_drone(order, drone):
+    return [gl_warehouses[0]], 0
