@@ -18,7 +18,7 @@ gl_drones = {}
 gl_products = {}
 gl_orders = {}
 
-free_drones = None
+gl_free_drones = {'resource': None}
 
 class Warehouse(object):
 
@@ -54,7 +54,12 @@ class Order(object):
         self._id = id
         self._pos = to
         self._env = env
-        self._products = products
+
+        self._products = {}
+        for i in range(self._env.nr_product_T):
+            self._products[i] = sum([1 for p in products if p == i])
+
+        self.served = False
 
 
 class Drone(object):
@@ -68,16 +73,40 @@ class Drone(object):
 
         self._pos = pos
 
-        self._busy = False
+        self.busy = False
 
 
-    def set_busy(self, busy):
-        self._busy = busy
+    def space(self, p_T):
+        return np.floor((self._capacity - self._current_load) / self._env.product_T[p_T])
 
-    def busy(self):
-        return self._busy
+    def put(self, p_T, count):
+        self._current_load += self._env.product_T[p_T] * count
+
+    def pull(self, p_T, count):
+        self._current_load -= self._env.product_T[p_T] * count
+
+
+    def serve(self, order, warehouses):
+
+        order.served = True
+
+        for w in warehouses:
+
+            takes = {}
+
+            for p_T, count in order._products.items():
+                takes[p_T] = min(w.stock(p_T), count, self.space(p_T))
+
+                yield self.load(w, p_T, takes[p_T])
+
+            for p_T, count in takes.items():
+                yield self.deliver(order, p_T, count)
+
 
     def load(self, warehouse, p_T, count):
+
+        warehouse._stock[p_T] -= count
+        self.put(p_T, count)
 
         fa = (self._env.now, self._id, warehouse._id, p_T, count)
         print("%.1f: Drone %d loading at warehouse %d product type %d %d times." % fa)
@@ -107,6 +136,9 @@ class Drone(object):
 
     def deliver(self, order, p_T, count):
 
+        order._products[p_T] -= count
+        self.pull(p_T, count)
+
         fa = (self._env.now, self._id, order._id, p_T, count)
         print("%.1f: Drone %d delivering for order %d product type %d %d of them." % fa)
 
@@ -134,6 +166,12 @@ class SIM(object):
 
         self._args = args
 
+        # Sim Parameter
+        setattr(self._env, 'gridsize', (args['cols'], args['rows']))
+        setattr(self._env, 'until', args['time_limit'])
+        setattr(self._env, 'nr_product_T', len(args['product_types']))
+        setattr(self._env, 'product_T', args['product_types'])
+
         # Drone
         for idx, d in enumerate(self._args['drones']):
             gl_drones[idx] = Drone(self._env, idx, d['coords'], args['max_payload'])
@@ -146,12 +184,7 @@ class SIM(object):
         for idx, d in enumerate(self._args['orders']):
             gl_orders[idx] = Order(self._env, idx, d['coords'], d['products'])
 
-        # Sim Parameter
-        setattr(self._env, 'gridsize', (args['cols'], args['rows']))
-        setattr(self._env, 'until', args['time_limit'])
-        setattr(self._env, 'nr_product_T', len(args['product_types']))
-
-        free_drones = simpy.Resource(self._env, capacity=len(gl_drones))
+        gl_free_drones['resource'] = simpy.Resource(self._env, capacity=len(gl_drones))
 
     def cleanup(self):
 
@@ -168,12 +201,22 @@ class SIM(object):
 
         while True:
 
-            request = free_drones.request()
+            request = gl_free_drones['resource'].request()
 
-            
+            # gather all free drones
+            free = [d for d in gl_drones.values() if not d.busy]
 
+            # Go through all non served orders
+            non_served = [tmp for tmp in gl_orders.values() if not tmp.served]
 
-            free_drones.release(request)
+            print(free)
+            print(non_served)
+
+            drone, warehouses, costs = cost_of_orders(free, non_served)
+
+            drone.serve(non_served[np.argmin(costs)], warehouses)
+
+            gl_free_drones['resource'].release(request)
 
 
     def run(self):
@@ -189,3 +232,6 @@ class SIM(object):
         log.info("Simulation took %.2fs." % duration)
 
 
+def cost_of_orders(free, non_served):
+
+    return free[0], [gl_warehouses[0]], [0 for o in non_served]
