@@ -42,13 +42,20 @@ class Drone(object):
 
         fa = (self._env.now, self._id, w_id, p_T, count)
         print("%.1f: Drone %d loading at warehouse %d product type %d %d times." % fa)
-        print("%dL%d%d%d" % fa)
+
+        self._env.commands.append("%dL%d%d%d" % fa[1:])
 
     def unload(self, w_id, p_T, count):
 
         fa = (self._env.now, self._id, w_id, p_T, count)
         print("%.1f: Drone %d unloading at warehouse %d product type %d %d times." % fa)
-        print("%dU%d%d%d" % fa)
+        self._env.commands.append("%dU%d%d%d" % fa[1:])
+
+    def deliver(self, order_id, p_T, count):
+
+        fa = (self._env.now, self._id, order_id, p_T, count)
+        print("%.1f: Drone %d delivering for order %d product type %d %d of them." % fa)
+        self._env.commands.append("%dD%d%d%d" % fa[1:])
 
 
 class SIM(object):
@@ -57,9 +64,9 @@ class SIM(object):
 
         self._env = simpy.Environment()
 
-        self._solutionf = open('solution.txt', 'w')
+        self._commands = []
 
-        setattr(self._env, 'solutionf', self._solutionf)
+        setattr(self._env, 'commands', self._commands)
 
     def setup(self, args):
 
@@ -67,7 +74,15 @@ class SIM(object):
 
 
     def cleanup(self):
-        pass
+
+        log.debug("Saving commands file.")
+
+        solutionf = open("solution.txt", 'w')
+
+        print("%d" % len(self._commands), file=solutionf)
+
+        for cmd in self._commands:
+            print(cmd, file=solutionf)
 
     def loop(self):
 
@@ -84,7 +99,11 @@ class SIM(object):
 
         start = time.time()
 
-        self._env.process(self.loop())
+        d = Drone(self._env, {'id': 3, 'capacity': 500})
+
+        d.load(0, 2, 3)
+
+        #self._env.process(self.loop())
 
         self._env.run(until=self._args['until'])
         
