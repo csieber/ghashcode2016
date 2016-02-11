@@ -15,15 +15,20 @@ log = logging.getLogger(__name__)
 def distance(f, t):
     return int(np.round(np.sqrt(np.power(np.abs(f._pos[0] - t._pos[0]), 2) + np.power(np.abs(f._pos[1] - t._pos[1]), 2))))
 
+gl_warehouses = {}
+gl_drones = {}
+gl_products = {}
+gl_orders = {}
+
 class Warehouse(object):
 
-    def __init__(self, env, args):
+    def __init__(self, env, id, pos, products):
         self._env = env
-        self._id = args['id']
+        self._id = id
 
-        self._products = args['products']
+        self._products = products
 
-        self._pos = (0,0)
+        self._pos = pos
 
         #TODO: Generate availability
 
@@ -34,26 +39,23 @@ class Warehouse(object):
 
         pass
 
-gl_warehouses = {}
-gl_drones = {}
-gl_products = {}
-gl_orders = {4: {'id': 4, 'to': (2,2)}}
-
 class Order(object):
 
-    def __int__(self, id, to):
+    def __init__(self, env, id, to, products):
         self._id = id
         self._pos = to
+        self._env = env
+        self._products = products
 
 
 class Drone(object):
 
-    def __init__(self, env, args):
+    def __init__(self, env, id, pos, capacity):
         self._env = env
-        self._id = args['id']
-        self._capacity = args['capacity']
+        self._id = id
+        self._capacity = capacity
 
-        self._pos = (0,0)
+        self._pos = pos
 
     def load(self, warehouse, p_T, count):
 
@@ -73,6 +75,7 @@ class Drone(object):
 
         fa = (self._env.now, self._id, warehouse._id, p_T, count)
         print("%.1f: Drone %d unloading at warehouse %d product type %d %d times." % fa)
+
         self._env.commands.append("%dU%d%d%d" % fa[1:])
 
         # Flying
@@ -86,6 +89,7 @@ class Drone(object):
 
         fa = (self._env.now, self._id, order._id, p_T, count)
         print("%.1f: Drone %d delivering for order %d product type %d %d of them." % fa)
+
         self._env.commands.append("%dD%d%d%d" % fa[1:])
 
         # Flying
@@ -109,6 +113,19 @@ class SIM(object):
     def setup(self, args):
 
         self._args = args
+
+        # Drone
+        for idx, d in enumerate(self._args['drones']):
+            gl_drones[idx] = Drone(self._env, idx, d['coords'], d['load'])
+
+        # Warehouses
+        for idx, d in enumerate(self._args['warehouses']):
+            gl_warehouses[idx] = Warehouse(self._env, idx, d['coords'], d['products'])
+
+        # Orders
+        for idx, d in enumerate(self._args['orders']):
+            gl_orders[idx] = Order(self._env, idx, d['coords'], d['products'])
+
 
 
     def cleanup(self):
@@ -137,11 +154,7 @@ class SIM(object):
 
         start = time.time()
 
-        d = Drone(self._env, {'id': 3, 'capacity': 500})
-
-        d.load(0, 2, 3)
-
-        #self._env.process(self.loop())
+        self._env.process(self.loop())
 
         self._env.run(until=self._args['until'])
         
