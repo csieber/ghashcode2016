@@ -27,6 +27,12 @@ class Warehouse(object):
 
         #TODO: Generate availability
 
+    def take(self, p_T, count):
+
+        fa = (self._env.now, p_T, count, self._id)
+        print("%1.f: Taking product %d %d times from warehouse %d." % fa)
+
+        pass
 
 
 class Drone(object):
@@ -38,16 +44,16 @@ class Drone(object):
 
         self._pos = (0,0)
 
-    def load(self, w_id, p_T, count):
+    def load(self, warehouse, p_T, count):
 
-        fa = (self._env.now, self._id, w_id, p_T, count)
+        fa = (self._env.now, self._id, warehouse._id, p_T, count)
         print("%.1f: Drone %d loading at warehouse %d product type %d %d times." % fa)
 
         self._env.commands.append("%dL%d%d%d" % fa[1:])
 
-    def unload(self, w_id, p_T, count):
+    def unload(self, warehouse, p_T, count):
 
-        fa = (self._env.now, self._id, w_id, p_T, count)
+        fa = (self._env.now, self._id, warehouse._id, p_T, count)
         print("%.1f: Drone %d unloading at warehouse %d product type %d %d times." % fa)
         self._env.commands.append("%dU%d%d%d" % fa[1:])
 
@@ -56,6 +62,7 @@ class Drone(object):
         fa = (self._env.now, self._id, order_id, p_T, count)
         print("%.1f: Drone %d delivering for order %d product type %d %d of them." % fa)
         self._env.commands.append("%dD%d%d%d" % fa[1:])
+
 
 
 class SIM(object):
