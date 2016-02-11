@@ -245,7 +245,7 @@ def next_order(free, non_served):
 
     costs = []
 
-    for order in non_served:
+    for idx, order in enumerate(non_served[0:50]):
 
         cost_per_drone = [cost_of_order_per_drone(order, drone) for drone in free]
 
@@ -261,4 +261,27 @@ def next_order(free, non_served):
 
 
 def cost_of_order_per_drone(order, drone):
-    return [gl_warehouses[0]], 0
+
+    path = []
+
+    products = order._products.copy()
+
+    warehouses = list(gl_warehouses.values())
+
+    while sum(products.values()) > 0 and len(warehouses) > 0:
+
+        w = warehouses[np.argmin([distance(w, order) for w in warehouses])]
+
+        takes = {}
+
+        for p_T, count in order._products.items():
+            takes[p_T] = min(w.stock(p_T), count, drone.space(p_T))
+            products[p_T] -= count
+
+        warehouses.remove(w)
+        path.append(w)
+
+    if sum(products.values()) == 0:
+        return path, 0
+    else:
+        return path, 1
