@@ -13,7 +13,7 @@ import simpy
 log = logging.getLogger(__name__)
 
 def distance(f, t):
-    return np.sqrt(np.power(np.abs(f._pos[0] - t._pos[0]), 2) + np.power(np.abs(f._pos[1] - t._pos[1]), 2))
+    return int(np.round(np.sqrt(np.power(np.abs(f._pos[0] - t._pos[0]), 2) + np.power(np.abs(f._pos[1] - t._pos[1]), 2))))
 
 class Warehouse(object):
 
@@ -34,6 +34,17 @@ class Warehouse(object):
 
         pass
 
+gl_warehouses = {}
+gl_drones = {}
+gl_products = {}
+gl_orders = {4: {'id': 4, 'to': (2,2)}}
+
+class Order(object):
+
+    def __int__(self, id, to):
+        self._id = id
+        self._pos = to
+
 
 class Drone(object):
 
@@ -51,17 +62,37 @@ class Drone(object):
 
         self._env.commands.append("%dL%d%d%d" % fa[1:])
 
+        # Flying
+        yield self._env.timeout(distance(self, warehouse))
+
+        # Delivering
+        yield self._env.timeout(1)
+
+
     def unload(self, warehouse, p_T, count):
 
         fa = (self._env.now, self._id, warehouse._id, p_T, count)
         print("%.1f: Drone %d unloading at warehouse %d product type %d %d times." % fa)
         self._env.commands.append("%dU%d%d%d" % fa[1:])
 
-    def deliver(self, order_id, p_T, count):
+        # Flying
+        yield self._env.timeout(distance(self, warehouse))
 
-        fa = (self._env.now, self._id, order_id, p_T, count)
+        # Delivering
+        yield self._env.timeout(1)
+
+
+    def deliver(self, order, p_T, count):
+
+        fa = (self._env.now, self._id, order._id, p_T, count)
         print("%.1f: Drone %d delivering for order %d product type %d %d of them." % fa)
         self._env.commands.append("%dD%d%d%d" % fa[1:])
+
+        # Flying
+        yield self._env.timeout(distance(self, order))
+
+        # Delivering
+        yield self._env.timeout(1)
 
 
 
