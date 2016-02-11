@@ -18,6 +18,8 @@ gl_drones = {}
 gl_products = {}
 gl_orders = {}
 
+free_drones = None
+
 class Warehouse(object):
 
     def __init__(self, env, id, pos, products):
@@ -65,6 +67,15 @@ class Drone(object):
         self._current_load = 0
 
         self._pos = pos
+
+        self._busy = False
+
+
+    def set_busy(self, busy):
+        self._busy = busy
+
+    def busy(self):
+        return self._busy
 
     def load(self, warehouse, p_T, count):
 
@@ -140,6 +151,8 @@ class SIM(object):
         setattr(self._env, 'until', args['time_limit'])
         setattr(self._env, 'nr_product_T', len(args['product_types']))
 
+        free_drones = simpy.Resource(self._env, capacity=len(gl_drones))
+
     def cleanup(self):
 
         log.debug("Saving commands file.")
@@ -153,14 +166,15 @@ class SIM(object):
 
     def loop(self):
 
-        return
-
         while True:
-            pass
-            # wh
 
-            # yield self._env.timeout(self._conf_time)
-            #self._env.process(self._nms.create_tunnel(from_id, to_id))
+            request = free_drones.request()
+
+            
+
+
+            free_drones.release(request)
+
 
     def run(self):
 
