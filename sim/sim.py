@@ -28,14 +28,23 @@ class Warehouse(object):
 
         self._pos = pos
 
-        #TODO: Generate availability
+        self._stock = {}
+
+        for i in range(self._env.nr_product_T):
+            self._stock[i] = 0
 
     def take(self, p_T, count):
 
         fa = (self._env.now, p_T, count, self._id)
         print("%1.f: Taking product %d %d times from warehouse %d." % fa)
 
-        pass
+        assert(self._stock[p_T] >= count)
+
+        self._stock[p_T] -= count
+
+    def stock(self, p_T):
+        return self._stock[p_T]
+
 
 class Order(object):
 
@@ -129,6 +138,7 @@ class SIM(object):
         # Sim Parameter
         setattr(self._env, 'gridsize', (args['cols'], args['rows']))
         setattr(self._env, 'until', args['time_limit'])
+        setattr(self._env, 'nr_product_T', len(args['product_types']))
 
     def cleanup(self):
 
