@@ -13,7 +13,7 @@ if __name__ == "__main__":
     #parser.add_argument("simargs", help="Simulation arguments (json)", type=str)
     #cmdargs = parser.parse_args()
 
-     logging.basicConfig(level=logging.DEBUG, **logconf)
+    logging.basicConfig(level=logging.DEBUG, **logconf)
 
     #with open(cmdargs.simargs) as f:
     #    args = json.load(f)

@@ -44,17 +44,18 @@ class Drone(object):
 
 class SIM(object):
 
-    def __init__(self, args):
+    def __init__(self):
 
         self._env = simpy.Environment()
-        self._args = args
 
-        self._solutionf = open('solution.txt')
+        self._solutionf = open('solution.txt', 'w')
 
         setattr(self._env, 'solutionf', self._solutionf)
 
-    def setup(self, G, args):
-        pass
+    def setup(self, args):
+
+        self._args = args
+
 
     def cleanup(self):
         pass
@@ -81,10 +82,5 @@ class SIM(object):
         duration = time.time() - start
         
         log.info("Simulation took %.2fs." % duration)
-
-        sim_stats = {'start': start, 'end': time.time()}
-
-        with open(os.path.join(self._env.logdir._folder, 'sim_stats.json'), 'w') as fp:
-            json.dump(sim_stats, fp)
 
 
