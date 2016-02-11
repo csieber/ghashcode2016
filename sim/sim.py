@@ -97,10 +97,12 @@ class Drone(object):
             for p_T, count in order._products.items():
                 takes[p_T] = min(w.stock(p_T), count, self.space(p_T))
 
-                yield self.load(w, p_T, takes[p_T])
+                print("loading..")
+                yield self._env.process(self.load(w, p_T, takes[p_T]))
+                print("done loading")
 
             for p_T, count in takes.items():
-                yield self.deliver(order, p_T, count)
+                yield self._env.process(self.deliver(order, p_T, count))
 
 
     def load(self, warehouse, p_T, count):
@@ -116,6 +118,8 @@ class Drone(object):
         # Flying
         yield self._env.timeout(distance(self, warehouse))
 
+        self._pos = warehouse._pos
+
         # Delivering
         yield self._env.timeout(1)
 
@@ -129,6 +133,8 @@ class Drone(object):
 
         # Flying
         yield self._env.timeout(distance(self, warehouse))
+
+        self._pos = warehouse._pos
 
         # Delivering
         yield self._env.timeout(1)
@@ -146,6 +152,8 @@ class Drone(object):
 
         # Flying
         yield self._env.timeout(distance(self, order))
+
+        self._pos = order._pos
 
         # Delivering
         yield self._env.timeout(1)
@@ -203,6 +211,7 @@ class SIM(object):
 
             print("%.1f: Requesting..." % self._env.now )
             request = gl_free_drones['resource'].request()
+            yield request
 
             # gather all free drones
             free = [d for d in gl_drones.values() if not d.busy]
