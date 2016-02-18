@@ -24,24 +24,22 @@ class Warehouse(object):
     def __init__(self, args, id, pos, products):
 
         self.args = args
-        self._id = id
+        self.id = id
 
-        self._products = products
+        self.pos = pos
 
-        self._pos = pos
-
-        self._stock = {}
+        self.stock = {}
 
         for i in range(args['nr_product_T']):
-            self._stock[i] = 0
+            self.stock[i] = products[0]
 
     def take(self, p_T, count):
 
-        print("Warehouse %d: Taking %d of product %d." % (self._id, p_T, count))
+        print("Warehouse %d: Taking %d of product %d." % (self.id, p_T, count))
 
-        assert(self._stock[p_T] >= count)
+        assert(self.stock[p_T] >= count)
 
-        self._stock[p_T] -= count
+        self.stock[p_T] -= count
 
     def can_fulfil(self, order):
 
@@ -49,17 +47,19 @@ class Warehouse(object):
 
         for p_T, c in order._products.items():
 
-            if self._stock[p_T] < c:
+            if self.stock[p_T] < c:
                 count['not_available'] += 1
             else:
                 count['available'] += 1
 
-        print("Warehouse %d, Order %d: %d/%d available" % (self._id, order._id, count['available'], count['not_available']))
+            count['count'] += 1
+
+        print("Warehouse %d, Order %d: %d/%d available" % (self.id, order._id, count['available'], count['count']))
 
         return count
 
     def stock(self, p_T):
-        return self._stock[p_T]
+        return self.stock[p_T]
 
 
 class Order(object):
@@ -233,7 +233,9 @@ def loop(args):
         c = Counter()
         for order in non_served:
 
-            c['match'] += sum([1 for _, w in gl_warehouses.items() if w.can_fulfil(order)['not_available'] == 0])
+            if sum([1 for _, w in gl_warehouses.items() if w.can_fulfil(order)['not_available'] == 0]) > 0:
+                c['match'] += 1
+
             c['counter'] += 1
 
         print("%d/%d orders can be fulfilled by only one warehouse trip." % (c['match'], c['counter']))
