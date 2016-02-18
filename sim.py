@@ -10,7 +10,7 @@ from collections import Counter
 log = logging.getLogger(__name__)
 
 def distance(f, t):
-    return int(np.round(np.sqrt(np.power(np.abs(f._pos[0] - t._pos[0]), 2) + np.power(np.abs(f._pos[1] - t._pos[1]), 2))))
+    return int(np.round(np.sqrt(np.power(np.abs(f.pos[0] - t.pos[0]), 2) + np.power(np.abs(f.pos[1] - t.pos[1]), 2))))
 
 gl_warehouses = {}
 gl_drones = {}
@@ -54,7 +54,7 @@ class Warehouse(object):
 
             count['count'] += 1
 
-        print("Warehouse %d, Order %d: %d/%d products available" % (self.id, order._id, count['available'], count['count']))
+        #print("Warehouse %d, Order %d: %d/%d products available" % (self.id, order._id, count['available'], count['count']))
 
         return count
 
@@ -66,7 +66,7 @@ class Order(object):
 
     def __init__(self, args, id, to, products):
         self._id = id
-        self._pos = to
+        self.pos = to
         self.args = args
 
         self._products = {}
@@ -99,7 +99,7 @@ class Drone(object):
         self.free_at = 0
 
     def free(self, time):
-        if self.free_at >= time:
+        if self.free_at <= time:
             return True
         else:
             return False
@@ -136,21 +136,25 @@ class Drone(object):
 
         order.served = True
 
+        takes_t = 0
+
         for w in warehouses:
 
             takes = {}
 
             for p_T, count in order._products.items():
 
-                print("We need %d times %d" % (count, p_T))
+                print("Order %d: We need %d times %d" % (order._id, count, p_T))
 
                 print("Counters: Warehouse (%d) / Order (%d) / space left (%d)" % (w.stock(p_T), count, self.space(p_T)))
                 takes[p_T] = min(w.stock(p_T), count, self.space(p_T))
 
-                self.load(w, p_T, takes[p_T])
+                takes_t += self.load(w, p_T, takes[p_T])
 
             for p_T, count in takes.items():
-                self.deliver(order, p_T, count)
+                takes_t += self.deliver(order, p_T, count)
+
+        return takes_t
 
 
     def load(self, warehouse, p_T, count):
@@ -161,7 +165,11 @@ class Drone(object):
 
         self.args['commands'].append("%d L %d %d %d" % (self._id, warehouse.id, p_T, count))
 
+        takes_t = distance(warehouse, self)
+
         self.pos = warehouse.pos
+
+        return takes_t + 1
 
 
     def unload(self, warehouse, p_T, count):
@@ -171,6 +179,8 @@ class Drone(object):
         self.args['commands'].append("%d U %d %d %d" % (self._id, warehouse.id, p_T, count))
 
         self.pos = warehouse.pos
+
+        return 1
 
 
     def deliver(self, order, p_T, count):
@@ -183,7 +193,11 @@ class Drone(object):
 
         self.args['commands'].append("%d D %d %d %d" % fa)
 
+        takes_t = distance(order, self)
+
         self.pos = order.pos
+
+        return takes_t + 1
 
 
 def run(args):
@@ -212,9 +226,9 @@ def run(args):
 
     print("### Loop ###")
 
-    loop(args)
+    order_c = loop(args)
 
-    print("### Loop end ###")
+    print("### Loop end (%d orders served)###" % order_c)
 
     # Save to file
     solutionf = open("solution_%s.txt" % args['scenario'], 'w')
@@ -231,10 +245,23 @@ def run(args):
 
 def loop(args):
 
-    for TIME in range(args['time_limit']):
+    easy_orders = []
+
+    for order in gl_orders.values():
+        if order.weight() <= args['max_payload']:
+            for w in gl_warehouses.values():
+                if w.can_fulfil(order)['not_available'] == 0:
+                    easy_orders.append(order)
+                    break
+
+    print("Number of easy orders: %d" % len(easy_orders))
+
+    orders_c = 0
+
+    for NOW in range(args['time_limit']):
 
         # gather all free drones
-        free = [d for d in gl_drones.values() if d.free(TIME)]
+        free = [d for d in gl_drones.values() if d.free(NOW)]
 
         # Go through all non served orders
         non_served = [tmp for tmp in gl_orders.values() if not tmp.served]
@@ -257,11 +284,26 @@ def loop(args):
         print("%d/%d orders can be fulfilled by only one warehouse trip." % (c['at_stock_at_single_w'], c['counter']))
         print("%d of those orders can be completed by one drone trip." % c['order_fits_payload'])
 
-        #order, drone, warehouses = next_order(free, non_served)
+        print("%d: %d/%d drones free right now." % (NOW, len(free), len(gl_drones)))
 
-        # Only loop once at the moment
-        return
+        while len(free) > 0 and len(easy_orders) > 0:
 
+            drone = free.pop()
+            order = easy_orders.pop()
+
+            for _, w in gl_warehouses.items():
+                if w.can_fulfil(order)['not_available'] == 0:
+                    takes_t = drone.serve(order, [w])
+                    drone.free_at = NOW + takes_t
+                    orders_c += 1
+                    break
+
+        if len(easy_orders) == 0:
+            print("WARNING: NO EASY ORDERS LEFT")
+            return orders_c
+
+        #if NOW == 5:
+        #    return orders_c
 
 def next_order(free, non_served):
 
