@@ -31,7 +31,7 @@ class Warehouse(object):
         self._stock = {}
 
         for i in range(args['nr_product_T']):
-            self._stock[i] = products[0]
+            self._stock[i] = products[i]
 
     def take(self, p_T, count):
 
@@ -302,7 +302,7 @@ def loop(args):
             print("WARNING: NO EASY ORDERS LEFT")
             return orders_c
 
-        #if NOW == 5:
+        #if NOW == 1:
         #    return orders_c
 
 def next_order(free, non_served):
@@ -354,5 +354,7 @@ def cost_of_order_per_drone(order, drone):
 if __name__ == "__main__":
 
     sim = load('busy_day.in')
+    #sim = load('busy_day.in')
+    #sim = load('busy_day.in')
 
     run(sim)
