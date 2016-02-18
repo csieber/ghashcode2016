@@ -45,11 +45,18 @@ class Warehouse(object):
 
     def can_fulfil(self, order):
 
-        for p_T, c in order._products.items():
-            if self._stock[p_T] < c:
-                return False
+        count = Counter()
 
-        return True
+        for p_T, c in order._products.items():
+
+            if self._stock[p_T] < c:
+                count['not_available'] += 1
+            else:
+                count['available'] += 1
+
+        print("Warehouse %d, Order %d: %d/%d available" % (self._id, order._id, count['available'], count['not_available']))
+
+        return count
 
     def stock(self, p_T):
         return self._stock[p_T]
@@ -226,7 +233,7 @@ def loop(args):
         c = Counter()
         for order in non_served:
 
-            c['match'] += sum([1 for _, w in gl_warehouses.items() if w.can_fulfil(order)])
+            c['match'] += sum([1 for _, w in gl_warehouses.items() if w.can_fulfil(order)['not_available'] == 0])
             c['counter'] += 1
 
         print("%d/%d orders can be fulfilled by only one warehouse trip." % (c['match'], c['counter']))
