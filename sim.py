@@ -2,7 +2,6 @@
 
 import time
 import logging
-#import networkx as nx
 import numpy as np
 from load import load
 from collections import Counter
@@ -17,7 +16,6 @@ gl_drones = {}
 gl_products = {}
 gl_orders = {}
 
-gl_free_drones = {'resource': None}
 
 class Warehouse(object):
 
@@ -233,6 +231,13 @@ class Drone(object):
 
 def run(args):
 
+    global gl_warehouses, gl_drones, gl_products, gl_orders
+
+    gl_warehouses = {}
+    gl_drones = {}
+    gl_products = {}
+    gl_orders = {}
+
     start = time.time()
 
     args['commands'] = []
@@ -416,13 +421,14 @@ def cost_of_order_per_drone(order, drone):
 
 if __name__ == "__main__":
 
-    sim = load('redundancy.in')
-    score = run(sim)
+    scores = {}
+    for i in ['redundancy.in', 'busy_day.in', 'mother_of_all_warehouses.in']:
+        sim = load(i)
+        scores[i] = run(sim)
 
-    sim = load('busy_day.in')
-    score += run(sim)
-
-    sim = load('mother_of_all_warehouses.in')
-    score += run(sim)
-
-    print("Total score: %d" % score)
+    print("--------------------")
+    print("Scores:")
+    for i, score in scores.items():
+        print("%s: %d" % (i, score))
+    print("--------------------")
+    print("Total score: %d" % sum(scores.values()))
