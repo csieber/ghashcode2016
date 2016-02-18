@@ -217,7 +217,7 @@ def run(args):
     print("### Loop end ###")
 
     # Save to file
-    solutionf = open("solution.txt", 'w')
+    solutionf = open("solution_%s.txt" % args['scenario'], 'w')
 
     print("%d" % len(args['commands']), file=solutionf)
 

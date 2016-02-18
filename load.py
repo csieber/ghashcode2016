@@ -65,6 +65,8 @@ def load(filename):
         drone['coords'] = simulation['warehouses'][0]['coords']
         drone['load'] = simulation['max_payload']
 
+    simulation['scenario'] = filename
+
     return simulation
 
 
