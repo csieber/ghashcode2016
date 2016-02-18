@@ -122,9 +122,8 @@ class Drone(object):
 
     def pull(self, p_T, count):
 
+        print("Drone %d: Unloading %d times product %d" % (self._id, count, p_T))
         assert(count > 0)
-
-        print("Drone %d: Unloading %d times product %d" % (self._id, p_T, count))
 
         self._load[p_T] -= count
 
@@ -153,6 +152,38 @@ class Drone(object):
 
             for p_T, count in takes.items():
                 takes_t += self.deliver(order, p_T, count)
+
+        return takes_t
+
+    def serve_multiple_trips(self, order, warehouses):
+
+        order.served = True
+
+        takes_t = 0
+
+        for w in warehouses:
+
+            while sum([count for _, count in order._products.items()]) > 0:
+
+                takes = {}
+
+                for p_T, count in order._products.items():
+
+                    print("Order %d: We need %d times %d" % (order._id, count, p_T))
+
+                    print("Counters: Warehouse (%d) / Order (%d) / space left (%d)" % (w.stock(p_T), count, self.space(p_T)))
+
+                    c = min(w.stock(p_T), count, self.space(p_T))
+
+                    if c == 0:
+                        continue
+
+                    takes[p_T] = c
+
+                    takes_t += self.load(w, p_T, takes[p_T])
+
+                for p_T, count in takes.items():
+                    takes_t += self.deliver(order, p_T, count)
 
         return takes_t
 
@@ -299,7 +330,36 @@ def loop(args):
                     break
 
         if len(easy_orders) == 0:
-            print("WARNING: NO EASY ORDERS LEFT")
+            break
+
+    print("END GAME MODE!")
+
+    easy_orders = []
+
+    for order in [o for o in gl_orders.values() if not o.served]:
+         for _, w in gl_warehouses.items():
+             if w.can_fulfil(order)['not_available'] == 0:
+                easy_orders.append(order)
+                break
+
+    for NOW in range(NOW, args['time_limit']):
+
+        free = [d for d in gl_drones.values() if d.free(NOW)]
+
+        while len(free) > 0 and len(easy_orders) > 0:
+
+            drone = free.pop()
+            order = easy_orders.pop()
+
+            for _, w in gl_warehouses.items():
+                if w.can_fulfil(order)['not_available'] == 0:
+                    print("Multiple trips")
+                    takes_t = drone.serve_multiple_trips(order, [w])
+                    drone.free_at = NOW + takes_t
+                    orders_c += 1
+                    break
+
+        if len(easy_orders) == 0:
             return orders_c
 
         #if NOW == 1:
@@ -353,8 +413,8 @@ def cost_of_order_per_drone(order, drone):
 
 if __name__ == "__main__":
 
-    sim = load('busy_day.in')
     #sim = load('busy_day.in')
-    #sim = load('busy_day.in')
+    #sim = load('mother_of_all_warehouses.in')
+    sim = load('redundancy.in')
 
     run(sim)
