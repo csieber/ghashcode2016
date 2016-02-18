@@ -257,9 +257,9 @@ def run(args):
 
     print("### Loop ###")
 
-    order_c = loop(args)
+    order_c, score = loop(args)
 
-    print("### Loop end (%d orders served)###" % order_c)
+    print("### Loop end (%d orders served, score %d)###" % (order_c, score))
 
     # Save to file
     solutionf = open("solution_%s.txt" % args['scenario'], 'w')
@@ -272,6 +272,8 @@ def run(args):
     duration = time.time() - start
         
     log.info("Simulation took %.2fs." % duration)
+
+    return score
 
 
 def loop(args):
@@ -287,6 +289,7 @@ def loop(args):
 
     print("Number of easy orders: %d" % len(easy_orders))
 
+    score = 0
     orders_c = 0
 
     for NOW in range(args['time_limit']):
@@ -326,6 +329,7 @@ def loop(args):
                 if w.can_fulfil(order)['not_available'] == 0:
                     takes_t = drone.serve(order, [w])
                     drone.free_at = NOW + takes_t
+                    score += np.ceil((args['time_limit'] - drone.free_at)/args['time_limit']*100)
                     orders_c += 1
                     break
 
@@ -356,14 +360,13 @@ def loop(args):
                     print("Multiple trips")
                     takes_t = drone.serve_multiple_trips(order, [w])
                     drone.free_at = NOW + takes_t
+                    score += np.ceil((args['time_limit'] - drone.free_at)/args['time_limit']*100)
                     orders_c += 1
                     break
 
         if len(easy_orders) == 0:
-            return orders_c
+            return orders_c, score
 
-        #if NOW == 1:
-        #    return orders_c
 
 def next_order(free, non_served):
 
@@ -413,8 +416,13 @@ def cost_of_order_per_drone(order, drone):
 
 if __name__ == "__main__":
 
-    #sim = load('busy_day.in')
-    #sim = load('mother_of_all_warehouses.in')
     sim = load('redundancy.in')
+    score = run(sim)
 
-    run(sim)
+    sim = load('busy_day.in')
+    score += run(sim)
+
+    sim = load('mother_of_all_warehouses.in')
+    score += run(sim)
+
+    print("Total score: %d" % score)
