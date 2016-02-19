@@ -373,52 +373,6 @@ def loop(args):
             return orders_c, score
 
 
-def next_order(free, non_served):
-
-    costs = []
-
-    for idx, order in enumerate(non_served[0:50]):
-
-        cost_per_drone = [cost_of_order_per_drone(order, drone) for drone in free]
-
-        costs.append((order,
-                      free[np.argmin([x[1] for x in cost_per_drone])],
-                      cost_per_drone[np.argmin([x[1] for x in cost_per_drone])]))
-
-    tmp = [c[2][1] for c in costs]
-    best = costs[np.argmin(tmp)]
-
-    # order, drone, path
-    return best[0], best[1], best[2][0]
-
-
-def cost_of_order_per_drone(order, drone):
-
-    path = []
-
-    products = order._products.copy()
-
-    warehouses = list(gl_warehouses.values())
-
-    while sum(products.values()) > 0 and len(warehouses) > 0:
-
-        w = warehouses[np.argmin([distance(w, order) for w in warehouses])]
-
-        takes = {}
-
-        for p_T, count in order._products.items():
-            takes[p_T] = min(w.stock(p_T), count, drone.space(p_T))
-            products[p_T] -= count
-
-        warehouses.remove(w)
-        path.append(w)
-
-    if sum(products.values()) == 0:
-        return path, 0
-    else:
-        return path, 1
-
-
 if __name__ == "__main__":
 
     scores = {}
